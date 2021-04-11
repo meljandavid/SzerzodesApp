@@ -1,0 +1,94 @@
+﻿<Window x:Class="myWPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:myWPF"
+        mc:Ignorable="d"
+        Title="Szerződés összeállító" Height="720" Width="1280">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"></RowDefinition>
+            <RowDefinition Height="7*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <DockPanel LastChildFill="False"  Background="White">
+            <Button Name="b_copy"
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Background="CornflowerBlue"
+                    BorderBrush="AliceBlue"
+                    
+                    Click="b_copy_Click"
+                    DockPanel.Dock="Right"
+                    Content="Előnézet"
+                    Margin="5,5,5,5"
+                    Padding="15,5,15,5">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="5"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+            <Button Name="b_reload"
+                    FontSize="20"
+                    FontWeight="Normal"
+                    Foreground="Black"
+                    Background="LightGray"
+                    BorderBrush="AliceBlue"
+                    
+                    Click="b_reload_Click"
+                    DockPanel.Dock="Right"
+                    Content="Frissítés"
+                    Margin="5,5,5,5"
+                    Padding="15,5,15,5">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="5"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+            <Menu DockPanel.Dock="Left" Background="Transparent">
+                <MenuItem Header="Mentés..." VerticalAlignment="Center" Click="MenuItem_savefileClick"></MenuItem>
+                <MenuItem Header="Megnyitás..." Click="MenuItem_openfileClick"></MenuItem>
+            </Menu>
+        </DockPanel>
+        <Grid Name ="myGrid" Grid.Row="1" Margin="5,0,5,5" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Name="o_fotema" Width="3*"></ColumnDefinition>
+                <ColumnDefinition Name="o_modul" Width="2*"></ColumnDefinition>
+                <ColumnDefinition Name="o_kifejtve" Width="4*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"></RowDefinition>
+                    <RowDefinition Height="10*"></RowDefinition>
+                </Grid.RowDefinitions>
+                <Label FontWeight="Bold" FontSize="14">Szempontok</Label>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Name="panel_szempontok" Grid.Row="1"></StackPanel>
+                </ScrollViewer>
+            </Grid>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"></RowDefinition>
+                    <RowDefinition Height="10*"></RowDefinition>
+                </Grid.RowDefinitions>
+                <Label FontWeight="Bold" FontSize="14">Opciók</Label>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Name="panel_opciok"></StackPanel>
+                </ScrollViewer>
+            </Grid>
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"></RowDefinition>
+                    <RowDefinition Height="10*"></RowDefinition>
+                </Grid.RowDefinitions>
+                <Label FontWeight="Bold" FontSize="14">Szövegrészlet</Label>
+                <Border Grid.Row="1" BorderBrush="AliceBlue" Background="GhostWhite" BorderThickness="2">
+                    <TextBlock Name="mytextblock" Margin="5,5,5,5" TextWrapping="Wrap" FontSize="14"></TextBlock>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

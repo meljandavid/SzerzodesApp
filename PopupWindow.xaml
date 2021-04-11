@@ -1,0 +1,39 @@
+﻿<Window x:Class="myWPF.PopupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:myWPF"
+        mc:Ignorable="d"
+        Title="Előnézet" Height="600" Width="500">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70"></RowDefinition>
+            <RowDefinition></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <Button Click="Button_Click"
+                HorizontalAlignment="Center"
+                Padding="10,10,10,10"
+                Margin="0,10,0,10"
+                FontSize="20"
+                FontWeight="Bold"
+                Foreground="White"
+                Background="CornflowerBlue"
+                >
+                Másolás
+            <Button.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="5"/>
+                </Style>
+            </Button.Resources>
+        </Button>
+        <TextBox Name="popupTextbox"
+                 Grid.Row="1"
+                 Margin="5,0,5,5"
+                 TextWrapping="Wrap"
+                 AcceptsReturn="True"
+                 FontSize="14">
+        </TextBox>
+    </Grid>
+</Window>
