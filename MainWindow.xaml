@@ -19,7 +19,7 @@
                     Background="CornflowerBlue"
                     BorderBrush="AliceBlue"
                     
-                    Click="b_copy_Click"
+                    Click="B_preview_Click"
                     DockPanel.Dock="Right"
                     Content="Előnézet"
                     Margin="5,5,5,5"
@@ -37,7 +37,7 @@
                     Background="LightGray"
                     BorderBrush="AliceBlue"
                     
-                    Click="b_reload_Click"
+                    Click="B_reload_Click"
                     DockPanel.Dock="Right"
                     Content="Frissítés"
                     Margin="5,5,5,5"
@@ -86,7 +86,11 @@
                 </Grid.RowDefinitions>
                 <Label FontWeight="Bold" FontSize="14">Szövegrészlet</Label>
                 <Border Grid.Row="1" BorderBrush="AliceBlue" Background="GhostWhite" BorderThickness="2">
-                    <TextBlock Name="mytextblock" Margin="5,5,5,5" TextWrapping="Wrap" FontSize="14"></TextBlock>
+                    <RichTextBox Name="myrichtext">
+                        <FlowDocument Name="MyDoc">
+                            
+                        </FlowDocument>
+                    </RichTextBox>
                 </Border>
             </Grid>
         </Grid>

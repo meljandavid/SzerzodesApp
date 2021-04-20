@@ -21,19 +21,18 @@
                 Foreground="White"
                 Background="CornflowerBlue"
                 >
-                Másolás
+                Mentés
             <Button.Resources>
                 <Style TargetType="Border">
                     <Setter Property="CornerRadius" Value="5"/>
                 </Style>
             </Button.Resources>
         </Button>
-        <TextBox Name="popupTextbox"
-                 Grid.Row="1"
-                 Margin="5,0,5,5"
-                 TextWrapping="Wrap"
-                 AcceptsReturn="True"
-                 FontSize="14">
-        </TextBox>
+        <RichTextBox Name="Rtb"
+            Grid.Row="1"
+            Margin="5,0,5,5"
+            >
+            <FlowDocument Name="PopupDoc"></FlowDocument>
+        </RichTextBox>
     </Grid>
 </Window>

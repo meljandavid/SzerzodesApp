@@ -1,10 +1,12 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.IO;
+using System.Windows.Documents;
 using System.Windows.Media;
-using Microsoft.Win32;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace myWPF
@@ -12,44 +14,65 @@ namespace myWPF
     public partial class MainWindow : Window
     {
         List<Szempont> szempontok = new();
+        PopupWindow popup;
 
         void Load()
         {
-            panel_szempontok.Children.Clear();
-            panel_opciok.Children.Clear();
-            szempontok.Clear();
-            Excel.Application xlApp = new();
-            Excel.Workbook xlWorkbook = xlApp.Workbooks.Open(Directory.GetCurrentDirectory().ToString()+"\\szerzodes_szoveg_sablon.xlsx");
-            Excel.Worksheet xlWorksheet = (Excel.Worksheet)xlWorkbook.Worksheets[1];
-            Excel.Range xlRange = xlWorksheet.UsedRange;
-            Excel.Range excelRange = xlWorksheet.UsedRange;
-
-            //get an object array of all of the cells in the worksheet (their values)
-            object[,] valueArray = (object[,])excelRange.get_Value(
-                        Excel.XlRangeValueDataType.xlRangeValueDefault);
-
-            //excel is not zero based!!
-            for (int row = 2; row <= xlWorksheet.UsedRange.Rows.Count; ++row)
+            try
             {
-                String rsz = "";
-                if(valueArray[row, 1] != null)
+                panel_szempontok.Children.Clear();
+                panel_opciok.Children.Clear();
+                szempontok.Clear();
+
+                Excel.Application xlApp = new();
+                Excel.Workbook xlWorkbook = xlApp.Workbooks.Open(
+                    Directory.GetCurrentDirectory().ToString() + "\\szerzodes_szoveg_sablon.xlsx");
+                Excel.Worksheet xlWorksheet = (Excel.Worksheet)xlWorkbook.Worksheets[1];
+                Excel.Range excelRange = xlWorksheet.UsedRange;
+
+                object[,] valueArray = (object[,])excelRange.get_Value(
+                            Excel.XlRangeValueDataType.xlRangeValueDefault);
+
+                // excel is not zero based
+                for (int row = 2; row <= xlWorksheet.UsedRange.Rows.Count; ++row)
                 {
-                    rsz = valueArray[row, 1].ToString();
+                    String rsz = "";
+
+                    // Ha  van uj szempont
+                    if (valueArray[row, 1] != null)
+                    {
+                        rsz = valueArray[row, 1].ToString();
+                    }
+
+                    if (rsz != "")
+                    {
+                        szempontok.Add(new Szempont(rsz));
+                        szempontok[^1].opciok = new List<Opcio>();
+                    }
+
+                    // Mindig van uj opcio, csinalunk egy ujat
+                    Opcio opcio = new(valueArray[row, 2].ToString());
+                    String str = "";
+                    if (xlWorksheet.Range["C" + row.ToString()] != null)
+                    {
+                        xlWorksheet.Range["C" + row.ToString()].Copy();
+                        str = Clipboard.GetText(TextDataFormat.Rtf);
+                    }
+                    opcio.kifejtve = str;
+                    szempontok[^1].opciok.Add(opcio);
                 }
 
-                if (rsz != "")
-                {
-                    szempontok.Add(new Szempont(rsz));
-                    szempontok[^1].opciok = new List<Opcio>();
-                }
-                Opcio opcio = new(valueArray[row, 2].ToString());
-                String str = "";
-                if (valueArray[row, 3] != null)
-                {
-                    str = valueArray[row, 3].ToString();
-                }
-                opcio.kifejtve = str;
-                szempontok[^1].opciok.Add(opcio);
+                //cleanup
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                //close and release
+                xlWorkbook.Close();
+                xlApp.Quit();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("EXCEL ERROR:\n" + e.Message);
             }
 
             foreach (Szempont sz in szempontok)
@@ -62,27 +85,19 @@ namespace myWPF
                 }
             }
 
-            //cleanup
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-
-            //close and release
-            xlWorkbook.Close();
-        }
-
-        public void openFile(String str)
-        {
-
         }
 
         public MainWindow()
         {
+            LoadingWindow loadwnd = new();
+            loadwnd.Show();
+
             InitializeComponent();
+            myrichtext.IsReadOnly = true;
+
             Load();
-            /*
-            String[] data = Environment.GetCommandLineArgs();
-            szempontok.Add(new Szempont(data[0]));
-            */
+
+            loadwnd.Close();
         }
 
         class Opcio
@@ -122,7 +137,7 @@ namespace myWPF
             public string id;
             public RadioButton rb;
             public List<Opcio> opciok;
-            public void szChecked()
+            public void SzChecked()
             {
                 rb.Foreground = new SolidColorBrush(Colors.Green);
                 rb.FontWeight = FontWeights.Bold;
@@ -133,16 +148,20 @@ namespace myWPF
 
         private void CheckRadioOpcio_Click(object sender, RoutedEventArgs e)
         {
-            foreach(Szempont sz in szempontok)
+            foreach (Szempont sz in szempontok)
             {
-                if(sz.rb.IsChecked == true)
+                if (sz.rb.IsChecked == true)
                 {
-                    foreach(Opcio o in sz.opciok)
+                    foreach (Opcio o in sz.opciok)
                     {
-                        if(o.rb.IsChecked == true)
+                        if (o.rb.IsChecked == true)
                         {
-                            mytextblock.Text = o.kifejtve;
-                            sz.szChecked();
+                            TextRange tr = new(MyDoc.ContentStart, MyDoc.ContentEnd);
+                            byte[] byteArray = Encoding.ASCII.GetBytes(o.kifejtve);
+                            MemoryStream stream = new(byteArray);
+                            tr.Load(stream, DataFormats.Rtf);
+
+                            sz.SzChecked();
                         }
                     }
                 }
@@ -152,18 +171,31 @@ namespace myWPF
         private void CheckRadioSzempont_Click(object sender, RoutedEventArgs e)
         {
             panel_opciok.Children.Clear();
-            foreach(Szempont sz in szempontok)
+            foreach (Szempont sz in szempontok)
             {
-                if(sz.rb.IsChecked == true)
+                if (sz.rb.IsChecked == true)
                 {
-                    foreach(Opcio o in sz.opciok)
+                    bool found = false;
+                    foreach (Opcio o in sz.opciok)
                     {
                         panel_opciok.Children.Add(o.rb);
-                        if(o.rb.IsChecked == true)
+                        if (o.rb.IsChecked == true)
                         {
-                            mytextblock.Text = o.kifejtve;
+                            found = true;
+                            TextRange tr = new(MyDoc.ContentStart, MyDoc.ContentEnd);
+                            byte[] byteArray = Encoding.ASCII.GetBytes(o.kifejtve);
+                            MemoryStream stream = new(byteArray);
+                            tr.Load(stream, DataFormats.Rtf);
                         }
                     }
+
+                    if (!found)
+                    {
+                        TextRange tr = new(MyDoc.ContentStart, MyDoc.ContentEnd);
+                        tr.Text = "";
+                    }
+
+                    return;
                 }
             }
         }
@@ -177,25 +209,19 @@ namespace myWPF
             {
                 StringReader reader = new(File.ReadAllText(openFileDialog.FileName));
                 int szCount = Int32.Parse(reader.ReadLine());
-                /*
-                for(int i=0; i<szCount; i++)
-                {
-                    szempontok[i].opciok[Int32.Parse(reader.ReadLine())].rb.IsChecked = true;
-                }
-                */
                 for (int i = 0; i < szCount; i++)
                 {
                     String str = reader.ReadLine();
                     int cut = str.IndexOf(":");
-                    String ssz = str.Substring(0, cut), so=str.Substring(cut+1);
+                    String ssz = str.Substring(0, cut), so = str[(cut + 1)..];
 
-                    foreach(Szempont sz in szempontok)
+                    foreach (Szempont sz in szempontok)
                     {
-                        if(sz.id == ssz)
+                        if (sz.id == ssz)
                         {
-                            foreach(Opcio o in sz.opciok)
+                            foreach (Opcio o in sz.opciok)
                             {
-                                if(o.id == so)
+                                if (o.id == so)
                                 {
                                     o.rb.IsChecked = true;
                                 }
@@ -213,28 +239,17 @@ namespace myWPF
             saveFileDialog.InitialDirectory = Directory.GetCurrentDirectory().ToString();
             if (saveFileDialog.ShowDialog() == true)
             {
-                /*
-                String str = szempontok.Count.ToString() + "\n";
-                foreach(Szempont sz in szempontok)
-                {
-                    int idx = 0;
-                    for(int i=0; i<sz.opciok.Count;  i++)
-                    {
-                        if (sz.opciok[i].rb.IsChecked == true) idx = i;
-                    }
-                    str += idx.ToString()+ "\n" ;
-                }*/
                 String str = "";
                 int ctr = 0;
-                foreach(Szempont sz in szempontok)
+                foreach (Szempont sz in szempontok)
                 {
-                    if(sz.isChecked)
+                    if (sz.isChecked)
                     {
                         String valasztott = "";
 
-                        foreach(Opcio o in sz.opciok)
+                        foreach (Opcio o in sz.opciok)
                         {
-                            if(o.rb.IsChecked == true)
+                            if (o.rb.IsChecked == true)
                             {
                                 ctr++;
                                 valasztott = o.id;
@@ -246,34 +261,44 @@ namespace myWPF
                     }
                 }
 
-                File.WriteAllText(saveFileDialog.FileName, ctr.ToString()+"\n"+str);
+                File.WriteAllText(saveFileDialog.FileName, ctr.ToString() + "\n" + str);
             }
         }
 
-        private void b_copy_Click(object sender, RoutedEventArgs e)
+        private void B_preview_Click(object sender, RoutedEventArgs e)
         {
-            String res = "";
+            if (popup==null || popup.IsLoaded == false) popup = new();
+
+            popup.PopupDoc.Blocks.Clear();
 
             foreach (Szempont sz in szempontok)
             {
-                int idx = -1;
-                for (int i = 0; i < sz.opciok.Count; i++)
+                foreach (Opcio o in sz.opciok)
                 {
-                    if (sz.opciok[i].rb.IsChecked == true)
-                        idx = i;
+                    if (o.rb.IsChecked == true)
+                    {
+                        Paragraph szp = new();
+                        szp.Inlines.Add(sz.id);
+                        szp.FontWeight = FontWeights.Bold;
+                        popup.PopupDoc.Blocks.Add(szp);
+
+                        Paragraph para = new();
+                        popup.PopupDoc.Blocks.Add(para);
+                        TextRange tr = new(para.ContentStart, para.ContentEnd);
+                        byte[] byteArray = Encoding.ASCII.GetBytes(o.kifejtve);
+                        MemoryStream stream = new(byteArray);
+                        tr.Load(stream, DataFormats.Rtf);
+                    }
                 }
-                if(idx != -1)
-                    res += sz.opciok[idx].kifejtve + "\n";
             }
 
-            PopupWindow popup = new();
             popup.Show();
-            popup.popupTextbox.Text = res;
         }
 
-        private void b_reload_Click(object sender, RoutedEventArgs e)
+        private void B_reload_Click(object sender, RoutedEventArgs e)
         {
             Load();
+            MessageBox.Show("Frissítve!");
         }
     }
 }

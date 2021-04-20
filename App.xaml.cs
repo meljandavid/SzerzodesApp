@@ -16,8 +16,6 @@ namespace myWPF
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             MainWindow wnd = new();
-            if(e.Args.Length>0)
-                wnd.openFile(e.Args[0]);
             wnd.Show();
         }
     }
