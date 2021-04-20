@@ -1,0 +1,3 @@
+2
+szerződés típus:konszignációs
+szerződés tárgya:szabadszavas
