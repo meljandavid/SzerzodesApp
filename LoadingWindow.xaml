@@ -8,6 +8,6 @@
         ResizeMode="NoResize"
         Title="" Height="300" Width="300">
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-        <Label FontSize="14">Betöltés...</Label>
+        <Label Name="Mylabel" FontSize="14">Betöltés...</Label>
     </StackPanel>
 </Window>

@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace myWPF
@@ -15,6 +16,8 @@ namespace myWPF
     {
         List<Szempont> szempontok = new();
         PopupWindow popup;
+
+        private static Action EmptyDelegate = delegate () { };
 
         void Load()
         {
@@ -50,16 +53,25 @@ namespace myWPF
                         szempontok[^1].opciok = new List<Opcio>();
                     }
 
-                    // Mindig van uj opcio, csinalunk egy ujat
-                    Opcio opcio = new(valueArray[row, 2].ToString());
-                    String str = "";
-                    if (xlWorksheet.Range["C" + row.ToString()] != null)
+                    if(valueArray[row, 2].ToString().Contains("Adatbázis") )
                     {
-                        xlWorksheet.Range["C" + row.ToString()].Copy();
-                        str = Clipboard.GetText(TextDataFormat.Rtf);
+
                     }
-                    opcio.kifejtve = str;
-                    szempontok[^1].opciok.Add(opcio);
+                    else
+                    {
+                        // Mindig van uj opcio, csinalunk egy ujat
+                        Opcio opcio = new(valueArray[row, 2].ToString());
+                        String str = "";
+                        if (xlWorksheet.Range["C" + row.ToString()] != null)
+                        {
+                            xlWorksheet.Range["C" + row.ToString()].Copy();
+                            str = Clipboard.GetText(TextDataFormat.Rtf);
+                        }
+                        opcio.kifejtve = str;
+                        szempontok[^1].opciok.Add(opcio);
+
+                        Clipboard.Clear();
+                    }
                 }
 
                 //cleanup
@@ -81,7 +93,7 @@ namespace myWPF
                 sz.rb.Click += CheckRadioSzempont_Click;
                 foreach (Opcio o in sz.opciok)
                 {
-                    o.rb.Click += CheckRadioOpcio_Click;
+                    o.cb.Click += CheckRadioOpcio_Click;
                 }
             }
 
@@ -104,20 +116,20 @@ namespace myWPF
         {
             public Opcio(String _id)
             {
-                rb = new RadioButton
+                cb = new()
                 {
                     Content = _id,
                     FontSize = 14
                 };
-                Thickness margin = rb.Margin;
+                Thickness margin = cb.Margin;
                 margin.Left = 10;
                 margin.Bottom = 2;
-                rb.Margin = margin;
+                cb.Margin = margin;
                 id = _id;
             }
 
             public string id, kifejtve;
-            public RadioButton rb;
+            public CheckBox cb;
         }
 
         class Szempont
@@ -137,12 +149,22 @@ namespace myWPF
             public string id;
             public RadioButton rb;
             public List<Opcio> opciok;
-            public void SzChecked()
+            public void SzChecked(bool state)
             {
-                rb.Foreground = new SolidColorBrush(Colors.Green);
-                rb.FontWeight = FontWeights.Bold;
-                rb.Background = new SolidColorBrush(Colors.LightGreen);
-                isChecked = true;
+                if (state)
+                {
+                    rb.Foreground = new SolidColorBrush(Colors.Green);
+                    rb.FontWeight = FontWeights.Bold;
+                    rb.Background = new SolidColorBrush(Colors.LightGreen);
+                    isChecked = true;
+                }
+                else
+                {
+                    rb.Foreground = new SolidColorBrush(Colors.Black);
+                    rb.FontWeight = FontWeights.Normal;
+                    rb.Background = new SolidColorBrush(Colors.White);
+                    isChecked = false;
+                }
             }
         }
 
@@ -152,17 +174,25 @@ namespace myWPF
             {
                 if (sz.rb.IsChecked == true)
                 {
+                    int ctr = 0;
                     foreach (Opcio o in sz.opciok)
                     {
-                        if (o.rb.IsChecked == true)
+                        if (o.cb.IsChecked == true)
                         {
+                            ctr++;
                             TextRange tr = new(MyDoc.ContentStart, MyDoc.ContentEnd);
                             byte[] byteArray = Encoding.ASCII.GetBytes(o.kifejtve);
                             MemoryStream stream = new(byteArray);
                             tr.Load(stream, DataFormats.Rtf);
-
-                            sz.SzChecked();
                         }
+                    }
+                    if(ctr == 0)
+                    {
+                        sz.SzChecked(false);
+                    }
+                    else
+                    {
+                        sz.SzChecked(true);
                     }
                 }
             }
@@ -178,8 +208,8 @@ namespace myWPF
                     bool found = false;
                     foreach (Opcio o in sz.opciok)
                     {
-                        panel_opciok.Children.Add(o.rb);
-                        if (o.rb.IsChecked == true)
+                        panel_opciok.Children.Add(o.cb);
+                        if (o.cb.IsChecked == true)
                         {
                             found = true;
                             TextRange tr = new(MyDoc.ContentStart, MyDoc.ContentEnd);
@@ -211,20 +241,32 @@ namespace myWPF
                 int szCount = Int32.Parse(reader.ReadLine());
                 for (int i = 0; i < szCount; i++)
                 {
-                    String str = reader.ReadLine();
-                    int cut = str.IndexOf(":");
-                    String ssz = str.Substring(0, cut), so = str[(cut + 1)..];
+                    String fejlec = reader.ReadLine();
+                    int cut = fejlec.IndexOf(":");
+                    String szempontnev = fejlec.Substring(0, cut);
+                    int nszempontok = Int32.Parse( fejlec[(cut + 1)..] );
 
-                    foreach (Szempont sz in szempontok)
+                    int found = -1;
+                    for(int j=0; j<szempontok.Count; j++)
                     {
-                        if (sz.id == ssz)
+                        if(szempontok[j].id == szempontnev)
                         {
-                            foreach (Opcio o in sz.opciok)
+                            found = j;
+                        }
+                    }
+                    if (found == -1) continue;
+
+                    szempontok[found].SzChecked(true);
+
+                    for(int k=0; k<nszempontok; k++)
+                    {
+                        String opcionev = reader.ReadLine();
+
+                        for(int j=0; j<szempontok[found].opciok.Count; j++)
+                        {
+                            if(szempontok[found].opciok[j].id == opcionev)
                             {
-                                if (o.id == so)
-                                {
-                                    o.rb.IsChecked = true;
-                                }
+                                szempontok[found].opciok[j].cb.IsChecked = true;
                             }
                         }
                     }
@@ -239,29 +281,7 @@ namespace myWPF
             saveFileDialog.InitialDirectory = Directory.GetCurrentDirectory().ToString();
             if (saveFileDialog.ShowDialog() == true)
             {
-                String str = "";
-                int ctr = 0;
-                foreach (Szempont sz in szempontok)
-                {
-                    if (sz.isChecked)
-                    {
-                        String valasztott = "";
-
-                        foreach (Opcio o in sz.opciok)
-                        {
-                            if (o.rb.IsChecked == true)
-                            {
-                                ctr++;
-                                valasztott = o.id;
-                                break;
-                            }
-                        }
-
-                        str += sz.id + ":" + valasztott + "\n";
-                    }
-                }
-
-                File.WriteAllText(saveFileDialog.FileName, ctr.ToString() + "\n" + str);
+                SaveTemplate(saveFileDialog.FileName);
             }
         }
 
@@ -269,19 +289,24 @@ namespace myWPF
         {
             if (popup==null || popup.IsLoaded == false) popup = new();
 
+            popup.parent = this;
+
             popup.PopupDoc.Blocks.Clear();
 
             foreach (Szempont sz in szempontok)
             {
+                if (sz.isChecked)
+                {
+                    Paragraph szp = new();
+                    szp.Inlines.Add(sz.id);
+                    szp.FontWeight = FontWeights.Bold;
+                    popup.PopupDoc.Blocks.Add(szp);
+                }
+
                 foreach (Opcio o in sz.opciok)
                 {
-                    if (o.rb.IsChecked == true)
+                    if (o.cb.IsChecked == true)
                     {
-                        Paragraph szp = new();
-                        szp.Inlines.Add(sz.id);
-                        szp.FontWeight = FontWeights.Bold;
-                        popup.PopupDoc.Blocks.Add(szp);
-
                         Paragraph para = new();
                         popup.PopupDoc.Blocks.Add(para);
                         TextRange tr = new(para.ContentStart, para.ContentEnd);
@@ -290,6 +315,9 @@ namespace myWPF
                         tr.Load(stream, DataFormats.Rtf);
                     }
                 }
+
+                Paragraph blank = new();
+                popup.PopupDoc.Blocks.Add(blank);
             }
 
             popup.Show();
@@ -297,8 +325,43 @@ namespace myWPF
 
         private void B_reload_Click(object sender, RoutedEventArgs e)
         {
+            b_reload.IsEnabled = false;
+            b_reload.Content = new Run("frissítés...");
+            b_reload.Dispatcher.Invoke(DispatcherPriority.Render, EmptyDelegate);
+
             Load();
+            
+            b_reload.IsEnabled = true;
+            b_reload.Content = new Run("Frissítés");
+
             MessageBox.Show("Frissítve!");
+        }
+
+        public void SaveTemplate(String path)
+        {
+            String str = "";
+            int ctr = 0;
+            foreach (Szempont sz in szempontok)
+            {
+                if (sz.isChecked)
+                {
+                    ctr++;
+                    String valasztott = "";
+                    int nopciok = 0;
+                    foreach (Opcio o in sz.opciok)
+                    {
+                        if (o.cb.IsChecked == true)
+                        {
+                            nopciok++;
+                            valasztott += o.id + "\n";
+                        }
+                    }
+
+                    str += sz.id + ":" + nopciok.ToString() + "\n" + valasztott;
+                }
+            }
+
+            File.WriteAllText(path, ctr.ToString() + "\n" + str);
         }
     }
 }
